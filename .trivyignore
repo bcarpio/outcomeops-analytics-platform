@@ -1,0 +1,5 @@
+# Trivy ignore rules for OutcomeOps Analytics Platform
+
+# CloudFront WAF - Not required for internal analytics dashboard
+# WAF adds cost without significant benefit for this use case
+AVD-AWS-0011

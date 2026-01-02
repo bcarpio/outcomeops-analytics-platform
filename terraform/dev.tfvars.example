@@ -1,0 +1,12 @@
+environment = "dev"
+aws_region  = "us-west-2"
+app_name    = "outcomeops-analytics"
+
+domain_list = [
+  "domain1.com",
+  "domain2.com"
+]
+
+dashboard_domain   = "analytics.yourdomain.com"
+sender_email       = "noreply@yourdomain.com"
+log_retention_days = 7
