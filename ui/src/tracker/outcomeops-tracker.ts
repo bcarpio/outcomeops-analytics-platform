@@ -5,10 +5,8 @@
  * Tracks pageviews, sessions, scroll depth, time on page, and SPA navigation.
  *
  * Usage:
- *   <script src="https://t.yourdomain.com/tracker.js" data-domain="yourdomain.com"></script>
- *
- * Or programmatically:
- *   OutcomeOpsTracker.init({ domain: 'yourdomain.com', endpoint: 'https://t.yourdomain.com' });
+ *   import { OutcomeOpsTracker } from './lib/outcomeops-tracker'
+ *   OutcomeOpsTracker.init({ domain: 'yourdomain.com', endpoint: 'https://t.yourdomain.com' })
  */
 
 interface TrackerConfig {
@@ -35,6 +33,31 @@ interface TrackingEvent {
   screen_height?: number;
   viewport_width?: number;
   viewport_height?: number;
+  is_ai_pattern?: boolean;
+  matched_pattern?: string;
+}
+
+// Patterns that suggest AI-generated/hallucinated URLs
+const AI_HALLUCINATION_PATTERNS: Array<{ pattern: RegExp; name: string }> = [
+  { pattern: /^\/official[-_]?(site|docs?|page|documentation|link)?$/i, name: 'official-*' },
+  { pattern: /^\/main[-_]?(page|docs?|documentation|site)?$/i, name: 'main-*' },
+  { pattern: /^\/canonical[-_]?(link|page|source|url)?$/i, name: 'canonical-*' },
+  { pattern: /^\/verified[-_]?(info|source|page|content)?$/i, name: 'verified-*' },
+  { pattern: /^\/authoritative[-_]?(page|source|content)?$/i, name: 'authoritative-*' },
+  { pattern: /^\/primary[-_]?(source|docs?|page)?$/i, name: 'primary-*' },
+  { pattern: /^\/homepage[-_]?(official)?$/i, name: 'homepage-*' },
+  { pattern: /^\/documentation[-_]?(official|main)?$/i, name: 'documentation-*' },
+  { pattern: /^\/resources[-_]?(official|main)?$/i, name: 'resources-*' },
+  { pattern: /^\/(index|home|default)\.(html?|php|aspx?)$/i, name: 'legacy-index' },
+];
+
+function detectAIPattern(path: string): { isAI: boolean; pattern: string | null } {
+  for (const { pattern, name } of AI_HALLUCINATION_PATTERNS) {
+    if (pattern.test(path)) {
+      return { isAI: true, pattern: name };
+    }
+  }
+  return { isAI: false, pattern: null };
 }
 
 const SESSION_KEY = 'oo_sid';
@@ -213,6 +236,24 @@ class OutcomeOpsTrackerClass {
   }
 
   /**
+   * Track a 404/not found page - detects potential AI hallucinated paths
+   */
+  trackNotFound(path: string): { isAIPattern: boolean; matchedPattern: string | null } {
+    const { isAI, pattern } = detectAIPattern(path);
+
+    this.trackEvent('not_found', {
+      path,
+      referrer: document.referrer || undefined,
+      previous_path: this.previousPath || undefined,
+      user_agent: navigator.userAgent,
+      is_ai_pattern: isAI,
+      matched_pattern: pattern || undefined,
+    });
+
+    return { isAIPattern: isAI, matchedPattern: pattern };
+  }
+
+  /**
    * Schedule a flush of the event queue
    */
   private scheduleFlush(): void {
@@ -330,19 +371,5 @@ class OutcomeOpsTrackerClass {
 // Create singleton instance
 const OutcomeOpsTracker = new OutcomeOpsTrackerClass();
 
-// Auto-initialize from script tag data attributes
-if (typeof document !== 'undefined') {
-  const script = document.currentScript as HTMLScriptElement;
-  if (script?.dataset.domain) {
-    OutcomeOpsTracker.init({
-      domain: script.dataset.domain,
-      endpoint: script.dataset.endpoint,
-      trackScrollDepth: script.dataset.scroll !== 'false',
-      trackTimeOnPage: script.dataset.time !== 'false',
-    });
-  }
-}
-
-// Export for module usage
 export { OutcomeOpsTracker, OutcomeOpsTrackerClass };
 export type { TrackerConfig, TrackingEvent };

@@ -7,7 +7,6 @@
     "dev": "vite",
     "build:dev": "tsc -b && vite build --mode development",
     "build:prd": "tsc -b && vite build --mode production",
-    "build:tracker": "vite build --config vite.config.tracker.ts",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "preview": "vite preview",

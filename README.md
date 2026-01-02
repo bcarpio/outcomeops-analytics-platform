@@ -1,6 +1,6 @@
 # OutcomeOps Analytics Platform
 
-Multi-domain serverless analytics platform for tracking website traffic across myfantasy.ai, outcomeops.ai, and thetek.net.
+Multi-domain serverless analytics platform for first-party website traffic tracking.
 
 ## Architecture
 
@@ -168,17 +168,34 @@ Query parameters: `from`, `to` (date range), `limit`, `referrer` (filter by refe
 
 Each tracked domain has its own tracking subdomain (e.g., `t.myfantasy.ai`, `t.outcomeops.ai`, `t.thetek.net`).
 
-### Client SDK
+### Client Tracking Library
 
-See the [OutcomeOps Analytics SDK](https://github.com/outcomeops/outcomeops-analytics-sdk) for the JavaScript tracking library used on client websites.
+The tracking library (`outcomeops-tracker.ts`) is bundled directly into each client application rather than loaded as an external script. This avoids an additional network request and ensures the tracker is always available.
+
+**Integration:**
+
+1. Copy `ui/src/tracker/outcomeops-tracker.ts` to your project
+2. Import and initialize in your app's entry point:
+
+```typescript
+import { OutcomeOpsTracker } from './lib/outcomeops-tracker'
+
+OutcomeOpsTracker.init({
+  domain: 'yourdomain.com',
+  endpoint: 'https://t.yourdomain.com',
+})
+```
+
+The tracker automatically:
+- Tracks pageviews and SPA navigation
+- Manages sessions with localStorage
+- Batches events and uses sendBeacon for reliability
+- Tracks scroll depth milestones (25%, 50%, 75%, 100%)
+- Detects AI-hallucinated 404 URLs
 
 ## Tracked Domains
 
-- myfantasy.ai
-- outcomeops.ai
-- thetek.net
-
-Each domain's CloudFront distribution sends access logs to this platform's S3 bucket for processing.
+Configure domains in your tfvars file. Each domain's CloudFront distribution sends access logs to this platform's S3 bucket for processing.
 
 ## Metrics Definitions
 
